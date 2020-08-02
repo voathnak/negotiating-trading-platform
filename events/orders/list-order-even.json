@@ -1,0 +1,78 @@
+{
+    "httpMethod": "GET",
+    "body": null,
+    "resource": "/orders",
+    "requestContext": {
+        "resourceId": "123456",
+        "apiId": "1234567890",
+        "resourcePath": "/orders",
+        "httpMethod": "GET",
+        "requestId": "c6af9ac6-7b61-11e6-9a41-93e8deadbeef",
+        "accountId": "123456789012",
+        "stage": "dev",
+        "identity": {
+            "apiKey": null,
+            "userArn": null,
+            "cognitoAuthenticationType": null,
+            "caller": null,
+            "userAgent": "Custom User Agent String",
+            "user": null,
+            "cognitoIdentityPoolId": null,
+            "cognitoAuthenticationProvider": null,
+            "sourceIp": "127.0.0.1",
+            "accountId": null
+        },
+        "extendedRequestId": null,
+        "path": "/orders"
+    },
+    "queryStringParameters": null,
+    "multiValueQueryStringParameters": null,
+    "headers": {
+        "Authorization": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VybmFtZSI6InZvYXRobmFrIiwiaWF0IjoxNTk2MzA5MDE0LjIxNzk1NX0.XpSaAKxjqNn9PhsByYTo363AcJoTglMT322cm91Q2j4",
+        "User-Agent": "PostmanRuntime/7.26.1",
+        "Accept": "*/*",
+        "Cache-Control": "no-cache",
+        "Postman-Token": "befc5180-a9d9-4da4-b815-5f6b5282cad4",
+        "Host": "localhost:3000",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Connection": "keep-alive",
+        "X-Forwarded-Proto": "http",
+        "X-Forwarded-Port": "3000"
+    },
+    "multiValueHeaders": {
+        "Authorization": [
+            "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VybmFtZSI6InZvYXRobmFrIiwiaWF0IjoxNTk2MzA5MDE0LjIxNzk1NX0.XpSaAKxjqNn9PhsByYTo363AcJoTglMT322cm91Q2j4"
+        ],
+        "User-Agent": [
+            "PostmanRuntime/7.26.1"
+        ],
+        "Accept": [
+            "*/*"
+        ],
+        "Cache-Control": [
+            "no-cache"
+        ],
+        "Postman-Token": [
+            "befc5180-a9d9-4da4-b815-5f6b5282cad4"
+        ],
+        "Host": [
+            "localhost:3000"
+        ],
+        "Accept-Encoding": [
+            "gzip, deflate, br"
+        ],
+        "Connection": [
+            "keep-alive"
+        ],
+        "X-Forwarded-Proto": [
+            "http"
+        ],
+        "X-Forwarded-Port": [
+            "3000"
+        ]
+    },
+    "pathParameters": null,
+    "stageVariables": null,
+    "path": "/orders",
+    "isBase64Encoded": false
+}

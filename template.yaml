@@ -1,0 +1,401 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  stock-trading
+
+  SAM Template for stock-trading
+
+
+
+Globals:
+  Function:
+    Timeout: 60
+  Api:
+    Cors:
+      AllowMethods: "'GET,POST,OPTIONS'"
+      AllowHeaders: "'content-type, Authorization'"
+      AllowOrigin: "'*'"
+      AllowCredentials: "'*'"
+
+
+
+Parameters:
+  DeploymentS3BucketName:
+    Type: String
+    Description: The name of the S3 bucket in which the Swagger specification is stored
+  StageName:
+    Type: String
+    Description: The name of the stage, e.g. "dev", "preprod", "prod"
+    Default: dev
+  VersionName:
+    Type: String
+    Description: The name of the stage, e.g. "dev", "preprod", "prod"
+    Default: v1-0
+  AppName:
+    Type: String
+    Description: The name of the APP
+    Default: stock-trading
+  SecretKey:
+    Type: String
+    Description: The name of the APP
+    Default: 62fec8f63ccfeeb60149f4c49fbcda10
+  DomainName:
+    Type: String
+    Default: 'stock-trading-api.vlim.co'
+  HostedZoneName:
+    Type: String
+    Default: vlim.co.
+  OrderTableName:
+    Type: String
+    Default: 'OrderTable'
+    Description: (Required) The name of the new DynamoDB table you want to create and save to. Minimum 3 characters
+    MinLength: 3
+    MaxLength: 50
+    AllowedPattern: ^[A-Za-z]+$
+    ConstraintDescription: 'Required parameter. Must be characters only. No numbers allowed.'
+  StockType:
+    Type: String
+    Default: "PPAP, GTI, PAS, PWSA, PPSP, ABC"
+  TodoTableName:
+    Type: String
+    Default: 'TodoTable'
+    Description: (Required) The name of the new DynamoDB table you want to create and save to. Minimum 3 characters
+    MinLength: 3
+    MaxLength: 50
+    AllowedPattern: ^[A-Za-z]+$
+    ConstraintDescription: 'Required parameter. Must be characters only. No numbers allowed.'
+  UserTableName:
+    Type: String
+    Default: 'UserTable'
+    Description: (Required) The name of the new DynamoDB table you want to create and save to. Minimum 3 characters
+    MinLength: 3
+    MaxLength: 50
+    AllowedPattern: ^[A-Za-z]+$
+    ConstraintDescription: 'Required parameter. Must be characters only. No numbers allowed.'
+
+
+
+Resources:
+  ApiCertificate:
+    Type: 'AWS::CertificateManager::Certificate'
+    Properties:
+      DomainName: !Ref DomainName
+      ValidationMethod: DNS
+
+
+
+  RestApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name:
+        Fn::Sub: ${AppName}-${StageName}-${VersionName}-api-gateway
+      MethodSettings:
+        - LoggingLevel: INFO
+          ResourcePath: '/*' # allows for logging on any resource
+          HttpMethod: '*' # allows for logging on any method
+      StageName:
+        Ref: StageName
+      Domain:
+        DomainName: !Ref DomainName
+        CertificateArn: !Ref ApiCertificate
+        EndpointConfiguration: EDGE
+        BasePath:
+          - !Ref StageName
+        Route53:
+          HostedZoneId: Z2TRR7BT0WSELA
+          IpV6: true
+      Auth:
+        DefaultAuthorizer: MyLambdaTokenAuthorizer
+        Authorizers:
+          MyLambdaTokenAuthorizer:
+            FunctionArn: !GetAtt TokenAuthFunction.Arn
+            # NOTE: Additional options:
+            Identity:
+              Header: Authorization
+              ValidationExpression: Bearer.*
+              ReauthorizeEvery: 30 # seconds
+
+
+
+  TokenAuthFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName:
+        Fn::Sub: ${AppName}-${StageName}-${VersionName}-TokenAuth
+      CodeUri: base/
+      Handler: authorizer.handler
+      Runtime: python3.8
+      Environment:
+        Variables:
+          SECRET_KEY: !Sub "${SecretKey}"
+      Layers:
+        - !Ref PythonLibs
+        - !Ref CoreLibs
+
+
+
+  ServerVersionFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName:
+        Fn::Sub: ${AppName}-${StageName}-${VersionName}-ServerVersion
+      CodeUri: server_version/
+      Handler: app.lambda_handler
+      Runtime: python3.8
+      Events:
+        ServerVersion:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: RestApi
+            Path: /version
+            Method: get
+            Auth:
+              Authorizer: NONE
+        WithAuth:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: RestApi
+            Path: /version-test
+            Method: get
+      Layers:
+        - !Ref PythonLibs
+
+
+
+  createUserFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName:
+        Fn::Sub: ${AppName}-${StageName}-${VersionName}-createUser
+      CodeUri: users/
+      Handler: create.lambda_handler
+      Runtime: python3.8
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Sub "${AppName}-${StageName}-${VersionName}-${UserTableName}"
+      Environment:
+        Variables:
+          DYNAMODB_TABLE: !Sub "${AppName}-${StageName}-${VersionName}-${UserTableName}"
+          SECRET_KEY: !Sub "${SecretKey}"
+          OPENNING_TIME: "8"
+          CLOSING_TIME: "15"
+      Events:
+        createUser:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: RestApi
+            Path: /users
+            Method: post
+        registerUser:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: RestApi
+            Path: /users/register
+            Method: post
+            Auth:
+              Authorizer: NONE
+      Layers:
+        - !Ref PythonLibs
+        - !Ref CoreLibs
+
+
+
+  authenticateUserFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName:
+        Fn::Sub: ${AppName}-${StageName}-${VersionName}-authenticateUser
+      CodeUri: users/
+      Handler: authenticate.authenticate_handler
+      Runtime: python3.8
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Sub "${AppName}-${StageName}-${VersionName}-${UserTableName}"
+      Environment:
+        Variables:
+          DYNAMODB_TABLE: !Sub "${AppName}-${StageName}-${VersionName}-${UserTableName}"
+          SECRET_KEY: !Sub "${SecretKey}"
+      Events:
+        authenticateUser:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: RestApi
+            Path: /users/login
+            Method: post
+            Auth:
+              Authorizer: NONE
+      Layers:
+        - !Ref PythonLibs
+        - !Ref CoreLibs
+
+
+
+  userBalanceFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName:
+        Fn::Sub: ${AppName}-${StageName}-${VersionName}-userBalance
+      CodeUri: users/
+      Handler: balance.handler
+      Runtime: python3.8
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Sub "${AppName}-${StageName}-${VersionName}-${UserTableName}"
+      Environment:
+        Variables:
+          DYNAMODB_TABLE: !Sub "${AppName}-${StageName}-${VersionName}-${UserTableName}"
+          SECRET_KEY: !Sub "${SecretKey}"
+          STOCK_TYPE: !Ref StockType
+      Events:
+        checkUserBalance:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: RestApi
+            Path: /users/balance
+            Method: get
+        updateUserBalance:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: RestApi
+            Path: /users/balance
+            Method: post
+      Layers:
+        - !Ref PythonLibs
+        - !Ref CoreLibs
+
+
+
+  createOrderFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName:
+        Fn::Sub: ${AppName}-${StageName}-${VersionName}-createOrder
+      CodeUri: orders/
+      Handler: create.lambda_handler
+      Runtime: python3.8
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Sub "${AppName}-${StageName}-${VersionName}-${OrderTableName}"
+        - DynamoDBCrudPolicy:
+            TableName: !Sub "${AppName}-${StageName}-${VersionName}-${UserTableName}"
+      Environment:
+        Variables:
+          ORDER_DYNAMODB_TABLE: !Sub "${AppName}-${StageName}-${VersionName}-${OrderTableName}"
+          USER_DYNAMODB_TABLE: !Sub "${AppName}-${StageName}-${VersionName}-${UserTableName}"
+          SECRET_KEY: !Sub "${SecretKey}"
+      Events:
+        createOrder:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: RestApi
+            Path: /orders
+            Method: post
+      Layers:
+        - !Ref PythonLibs
+        - !Ref CoreLibs
+
+
+
+  listOrderFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName:
+        Fn::Sub: ${AppName}-${StageName}-${VersionName}-listOrder
+      CodeUri: orders/
+      Handler: list.order_list
+      Runtime: python3.8
+      Policies:
+        - AmazonS3ReadOnlyAccess
+        - DynamoDBCrudPolicy:
+            TableName: !Sub "${AppName}-${StageName}-${VersionName}-${OrderTableName}"
+        - DynamoDBCrudPolicy:
+            TableName: !Sub "${AppName}-${StageName}-${VersionName}-${UserTableName}"
+      Environment:
+        Variables:
+          ROOM_DYNAMODB_TABLE: !Sub "${AppName}-${StageName}-${VersionName}-${OrderTableName}"
+          USER_DYNAMODB_TABLE: !Sub "${AppName}-${StageName}-${VersionName}-${UserTableName}"
+      Events:
+        listOrder:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: RestApi
+            Path: /orders
+            Method: get
+      Layers:
+        - !Ref PythonLibs
+        - !Ref CoreLibs
+
+
+
+  CoreLibs:
+    Type: 'AWS::Serverless::LayerVersion'
+    Properties:
+      ContentUri: layer/core
+      CompatibleRuntimes: # optional
+        - python3.8
+
+
+
+  PythonLibs:
+    Type: 'AWS::Serverless::LayerVersion'
+    Properties:
+      ContentUri: layer/python_libs
+      CompatibleRuntimes: # optional
+        - python3.8
+
+
+
+  UsersDynamoDbTable:
+    Type: 'AWS::DynamoDB::Table'
+    Properties:
+      TableName: !Sub "${AppName}-${StageName}-${VersionName}-${UserTableName}"
+      AttributeDefinitions:
+        - AttributeName: itemId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: itemId
+          KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+
+
+
+  OrdersDynamoDbTable:
+    Type: 'AWS::DynamoDB::Table'
+    Properties:
+      TableName: !Sub "${AppName}-${StageName}-${VersionName}-${OrderTableName}"
+      AttributeDefinitions:
+        - AttributeName: itemId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: itemId
+          KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+
+
+
+Outputs:
+  ApiURL:
+    Description: "API URL"
+    Value: !Sub 'https://${RestApi}.execute-api.${AWS::Region}.amazonaws.com/${StageName}-${VersionName}/'
+  ServerVersionApi:
+    Description: "API Gateway endpoint URL for Prod stage for Hello World function"
+    Value: !Sub "https://${RestApi}.execute-api.${AWS::Region}.amazonaws.com/${StageName}-${VersionName}/hello/"
+  ServerVersionFunction:
+    Description: "Hello World Lambda Function ARN"
+    Value: !GetAtt ServerVersionFunction.Arn
+  ServerVersionFunctionIamRole:
+    Description: "Implicit IAM Role created for Hello World function"
+    Value: !GetAtt ServerVersionFunctionRole.Arn
