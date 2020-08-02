@@ -27,7 +27,6 @@ def authenticate_handler(event, context):
             "username": user.username,
             "fullname": user.fullname,
             "email": user.email,
-            "phone": user.phone,
             "token": encoded_jwt.decode()
         })))
     else:

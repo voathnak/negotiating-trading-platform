@@ -16,7 +16,7 @@ def send_mail(email_address):
     return requests.post(
         "https://api.mailgun.net/v3/mail.vlim.co/messages",
         auth=("api", "cdc6155b3734354611b31621524a3900-a65173b1-08564970"),
-        data={"from": "NEGOTIATING TRADING PLATFORM <noreply@mail.vlim.co>",
+        data={"from": "Support <noreply@mail.vlim.co>",
               "to": [email_address],
               "subject": "Hi Voathnak Lim, please verify your NEGOTIATING TRADING PLATFORM account",
               "template": "verification-email",
