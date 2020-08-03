@@ -3,7 +3,7 @@
 
 export APP_NAME=stock-trading
 export STAGE_NAME=dev
-export VERSION_NAME=v1-0
+export VERSION_NAME=v1
 export S3_BUCKET=$APP_NAME-$STAGE_NAME-$VERSION_NAME-bucket
 export STACK_NAME=$APP_NAME-$STAGE_NAME-$VERSION_NAME-stack
 export PROFILE=voathnakl

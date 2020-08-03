@@ -37,5 +37,3 @@ def handler(event, context):
         }))
     else:
         return response(204, "Record not found")
-
-        # return response(200, "Balance successfully updated")

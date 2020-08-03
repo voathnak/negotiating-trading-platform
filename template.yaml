@@ -30,7 +30,7 @@ Parameters:
   VersionName:
     Type: String
     Description: The name of the stage, e.g. "dev", "preprod", "prod"
-    Default: v1-0
+    Default: v1
   AppName:
     Type: String
     Description: The name of the APP
@@ -95,6 +95,7 @@ Resources:
           HttpMethod: '*' # allows for logging on any method
       StageName:
         Ref: StageName
+#      Cors: "'*'"
       Domain:
         DomainName: !Ref DomainName
         CertificateArn: !Ref ApiCertificate

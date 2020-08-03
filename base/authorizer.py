@@ -54,7 +54,7 @@ def generatePolicyDocument(effect, methodArn):
         "Statement": [{
             "Action": 'execute-api:Invoke',
             "Effect": effect,
-            "Resource": "arn:aws:execute-api:us-east-1:444536552593:af8oy0xu0b/dev/*"
+            "Resource": "arn:aws:execute-api:us-east-1:444536552593:4vs90h02qf/dev/*"
             # "Resource": methodArn
         }]
     }
