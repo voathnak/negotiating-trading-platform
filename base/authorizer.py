@@ -13,6 +13,7 @@ from jwt import InvalidSignatureError, DecodeError
 from snippets.utils import log_event
 
 SECRET_KEY = os.environ['SECRET_KEY']
+STAGE_NAME = os.environ['STAGE_NAME']
 
 def handler(event, context):
     log_event(event)
@@ -54,7 +55,7 @@ def generatePolicyDocument(effect, methodArn):
         "Statement": [{
             "Action": 'execute-api:Invoke',
             "Effect": effect,
-            "Resource": "arn:aws:execute-api:us-east-1:444536552593:4vs90h02qf/dev/*"
+            "Resource": "arn:aws:execute-api:us-east-1:444536552593:0ka4dtbzcc/{}/*".format(STAGE_NAME)
             # "Resource": methodArn
         }]
     }

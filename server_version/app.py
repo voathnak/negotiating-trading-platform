@@ -2,6 +2,8 @@ import json
 
 import requests
 
+from snippets.utils import response
+
 
 def lambda_handler(event, context):
 
@@ -14,10 +16,7 @@ def lambda_handler(event, context):
 
         raise e
 
-    return {
-        "statusCode": 200,
-        "body": json.dumps({
+    return response(200, json.dumps({
             "version": "0.0.1",
             "location": ip.text.replace("\n", "")
-        }),
-    }
+        }))

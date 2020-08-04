@@ -10,12 +10,6 @@ Description: >
 Globals:
   Function:
     Timeout: 60
-  Api:
-    Cors:
-      AllowMethods: "'GET,POST,OPTIONS'"
-      AllowHeaders: "'content-type, Authorization'"
-      AllowOrigin: "'*'"
-      AllowCredentials: "'*'"
 
 
 
@@ -27,10 +21,6 @@ Parameters:
     Type: String
     Description: The name of the stage, e.g. "dev", "preprod", "prod"
     Default: dev
-  VersionName:
-    Type: String
-    Description: The name of the stage, e.g. "dev", "preprod", "prod"
-    Default: v1
   AppName:
     Type: String
     Description: The name of the APP
@@ -88,14 +78,17 @@ Resources:
     Type: AWS::Serverless::Api
     Properties:
       Name:
-        Fn::Sub: ${AppName}-${StageName}-${VersionName}-api-gateway
+        Fn::Sub: ${AppName}-${StageName}-api-gateway
       MethodSettings:
         - LoggingLevel: INFO
           ResourcePath: '/*' # allows for logging on any resource
           HttpMethod: '*' # allows for logging on any method
       StageName:
         Ref: StageName
-#      Cors: "'*'"
+      Cors:
+        AllowMethods: "'POST, GET, OPTIONS'"
+        AllowHeaders: "'X-Forwarded-For, content-type, Authorization'"
+        AllowOrigin: "'*'"
       Domain:
         DomainName: !Ref DomainName
         CertificateArn: !Ref ApiCertificate
@@ -115,6 +108,7 @@ Resources:
               Header: Authorization
               ValidationExpression: Bearer.*
               ReauthorizeEvery: 30 # seconds
+        AddDefaultAuthorizerToCorsPreflight: False
 
 
 
@@ -122,13 +116,14 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName:
-        Fn::Sub: ${AppName}-${StageName}-${VersionName}-TokenAuth
+        Fn::Sub: ${AppName}-${StageName}-TokenAuth
       CodeUri: base/
       Handler: authorizer.handler
       Runtime: python3.8
       Environment:
         Variables:
           SECRET_KEY: !Sub "${SecretKey}"
+          STAGE_NAME: !Sub "${StageName}"
       Layers:
         - !Ref PythonLibs
         - !Ref CoreLibs
@@ -139,7 +134,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName:
-        Fn::Sub: ${AppName}-${StageName}-${VersionName}-ServerVersion
+        Fn::Sub: ${AppName}-${StageName}-ServerVersion
       CodeUri: server_version/
       Handler: app.lambda_handler
       Runtime: python3.8
@@ -162,6 +157,7 @@ Resources:
             Method: get
       Layers:
         - !Ref PythonLibs
+        - !Ref CoreLibs
 
 
 
@@ -169,16 +165,16 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName:
-        Fn::Sub: ${AppName}-${StageName}-${VersionName}-createUser
+        Fn::Sub: ${AppName}-${StageName}-createUser
       CodeUri: users/
       Handler: create.lambda_handler
       Runtime: python3.8
       Policies:
         - DynamoDBCrudPolicy:
-            TableName: !Sub "${AppName}-${StageName}-${VersionName}-${UserTableName}"
+            TableName: !Sub "${AppName}-${StageName}-${UserTableName}"
       Environment:
         Variables:
-          DYNAMODB_TABLE: !Sub "${AppName}-${StageName}-${VersionName}-${UserTableName}"
+          DYNAMODB_TABLE: !Sub "${AppName}-${StageName}-${UserTableName}"
           SECRET_KEY: !Sub "${SecretKey}"
           OPENNING_TIME: "8"
           CLOSING_TIME: "15"
@@ -209,16 +205,16 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName:
-        Fn::Sub: ${AppName}-${StageName}-${VersionName}-authenticateUser
+        Fn::Sub: ${AppName}-${StageName}-authenticateUser
       CodeUri: users/
       Handler: authenticate.authenticate_handler
       Runtime: python3.8
       Policies:
         - DynamoDBCrudPolicy:
-            TableName: !Sub "${AppName}-${StageName}-${VersionName}-${UserTableName}"
+            TableName: !Sub "${AppName}-${StageName}-${UserTableName}"
       Environment:
         Variables:
-          DYNAMODB_TABLE: !Sub "${AppName}-${StageName}-${VersionName}-${UserTableName}"
+          DYNAMODB_TABLE: !Sub "${AppName}-${StageName}-${UserTableName}"
           SECRET_KEY: !Sub "${SecretKey}"
       Events:
         authenticateUser:
@@ -240,16 +236,16 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName:
-        Fn::Sub: ${AppName}-${StageName}-${VersionName}-userBalance
+        Fn::Sub: ${AppName}-${StageName}-userBalance
       CodeUri: users/
       Handler: balance.handler
       Runtime: python3.8
       Policies:
         - DynamoDBCrudPolicy:
-            TableName: !Sub "${AppName}-${StageName}-${VersionName}-${UserTableName}"
+            TableName: !Sub "${AppName}-${StageName}-${UserTableName}"
       Environment:
         Variables:
-          DYNAMODB_TABLE: !Sub "${AppName}-${StageName}-${VersionName}-${UserTableName}"
+          DYNAMODB_TABLE: !Sub "${AppName}-${StageName}-${UserTableName}"
           SECRET_KEY: !Sub "${SecretKey}"
           STOCK_TYPE: !Ref StockType
       Events:
@@ -277,19 +273,19 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName:
-        Fn::Sub: ${AppName}-${StageName}-${VersionName}-createOrder
+        Fn::Sub: ${AppName}-${StageName}-createOrder
       CodeUri: orders/
       Handler: create.lambda_handler
       Runtime: python3.8
       Policies:
         - DynamoDBCrudPolicy:
-            TableName: !Sub "${AppName}-${StageName}-${VersionName}-${OrderTableName}"
+            TableName: !Sub "${AppName}-${StageName}-${OrderTableName}"
         - DynamoDBCrudPolicy:
-            TableName: !Sub "${AppName}-${StageName}-${VersionName}-${UserTableName}"
+            TableName: !Sub "${AppName}-${StageName}-${UserTableName}"
       Environment:
         Variables:
-          ORDER_DYNAMODB_TABLE: !Sub "${AppName}-${StageName}-${VersionName}-${OrderTableName}"
-          USER_DYNAMODB_TABLE: !Sub "${AppName}-${StageName}-${VersionName}-${UserTableName}"
+          ORDER_DYNAMODB_TABLE: !Sub "${AppName}-${StageName}-${OrderTableName}"
+          USER_DYNAMODB_TABLE: !Sub "${AppName}-${StageName}-${UserTableName}"
           SECRET_KEY: !Sub "${SecretKey}"
       Events:
         createOrder:
@@ -309,20 +305,20 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName:
-        Fn::Sub: ${AppName}-${StageName}-${VersionName}-listOrder
+        Fn::Sub: ${AppName}-${StageName}-listOrder
       CodeUri: orders/
       Handler: list.order_list
       Runtime: python3.8
       Policies:
         - AmazonS3ReadOnlyAccess
         - DynamoDBCrudPolicy:
-            TableName: !Sub "${AppName}-${StageName}-${VersionName}-${OrderTableName}"
+            TableName: !Sub "${AppName}-${StageName}-${OrderTableName}"
         - DynamoDBCrudPolicy:
-            TableName: !Sub "${AppName}-${StageName}-${VersionName}-${UserTableName}"
+            TableName: !Sub "${AppName}-${StageName}-${UserTableName}"
       Environment:
         Variables:
-          ROOM_DYNAMODB_TABLE: !Sub "${AppName}-${StageName}-${VersionName}-${OrderTableName}"
-          USER_DYNAMODB_TABLE: !Sub "${AppName}-${StageName}-${VersionName}-${UserTableName}"
+          ROOM_DYNAMODB_TABLE: !Sub "${AppName}-${StageName}-${OrderTableName}"
+          USER_DYNAMODB_TABLE: !Sub "${AppName}-${StageName}-${UserTableName}"
       Events:
         listOrder:
           Type: Api
@@ -358,7 +354,7 @@ Resources:
   UsersDynamoDbTable:
     Type: 'AWS::DynamoDB::Table'
     Properties:
-      TableName: !Sub "${AppName}-${StageName}-${VersionName}-${UserTableName}"
+      TableName: !Sub "${AppName}-${StageName}-${UserTableName}"
       AttributeDefinitions:
         - AttributeName: itemId
           AttributeType: S
@@ -374,7 +370,7 @@ Resources:
   OrdersDynamoDbTable:
     Type: 'AWS::DynamoDB::Table'
     Properties:
-      TableName: !Sub "${AppName}-${StageName}-${VersionName}-${OrderTableName}"
+      TableName: !Sub "${AppName}-${StageName}-${OrderTableName}"
       AttributeDefinitions:
         - AttributeName: itemId
           AttributeType: S
@@ -390,10 +386,10 @@ Resources:
 Outputs:
   ApiURL:
     Description: "API URL"
-    Value: !Sub 'https://${RestApi}.execute-api.${AWS::Region}.amazonaws.com/${StageName}-${VersionName}/'
+    Value: !Sub 'https://${RestApi}.execute-api.${AWS::Region}.amazonaws.com/${StageName}/'
   ServerVersionApi:
     Description: "API Gateway endpoint URL for Prod stage for Hello World function"
-    Value: !Sub "https://${RestApi}.execute-api.${AWS::Region}.amazonaws.com/${StageName}-${VersionName}/hello/"
+    Value: !Sub "https://${RestApi}.execute-api.${AWS::Region}.amazonaws.com/${StageName}/version/"
   ServerVersionFunction:
     Description: "Hello World Lambda Function ARN"
     Value: !GetAtt ServerVersionFunction.Arn

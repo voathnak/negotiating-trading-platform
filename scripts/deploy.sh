@@ -10,7 +10,6 @@ aws s3api 	--profile "$PROFILE" create-bucket \
 			--bucket "$S3_BUCKET" \
 			--region "$REGION"
 
-sam build
 
 sam package --profile "$PROFILE" \
 			--template-file "$INPUT_FILE" \
@@ -23,7 +22,6 @@ sam deploy 	--profile "$PROFILE" \
 			--stack-name "$STACK_NAME" \
 			--parameter-overrides \
 				StageName="$STAGE_NAME" \
-				VersionName="$VERSION_NAME" \
 				DeploymentS3BucketName="$S3_BUCKET" \
 				AppName="$APP_NAME" \
 			--capabilities CAPABILITY_IAM
