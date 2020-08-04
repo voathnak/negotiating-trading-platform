@@ -19,7 +19,7 @@ def lambda_handler(event, context):
     data.update({"username": username})
     if data.get('type') == 'sell':
         # check if the user have enough stock balance
-        stock_balance = user.stock_balance.get(data.get("stock"), 0)
+        stock_balance = int(user.stock_balance.get(data.get("stock"), 0))
         if stock_balance < int(data.get("quantity")):
             return response(400, json.dumps(
                 {'message': "Sorry, You do not have enough security balance to place this order."}))
