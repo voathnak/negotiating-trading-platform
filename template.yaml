@@ -29,6 +29,10 @@ Parameters:
     Type: String
     Description: The name of the APP
     Default: 62fec8f63ccfeeb60149f4c49fbcda10
+  WEBBucketName:
+    Type: String
+    Description: "Name of the Bucket to store the images. Note: It should be lowecase letters, numbers or hypen and between 3 and 63 characters."
+    Default: stock-trading.vlim.co
   DomainName:
     Type: String
     Default: 'stock-trading-api.vlim.co'
@@ -348,6 +352,37 @@ Resources:
       ContentUri: layer/python_libs
       CompatibleRuntimes: # optional
         - python3.8
+
+
+
+  WEBS3Bucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    Properties:
+      BucketName: !Sub "${WEBBucketName}"
+
+
+
+  SampleBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket:
+        Ref: WEBS3Bucket
+      PolicyDocument:
+        Statement:
+          -
+            Action:
+              - "s3:GetObject"
+            Effect: "Allow"
+            Resource:
+              Fn::Join:
+                - ""
+                -
+                  - "arn:aws:s3:::"
+                  -
+                    Ref: WEBS3Bucket
+                  - "/*"
+            Principal: "*"
 
 
 

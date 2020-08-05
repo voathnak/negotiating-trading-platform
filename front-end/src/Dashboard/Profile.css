@@ -1,0 +1,40 @@
+.labelTitle p {
+  width: 150px;
+  padding-right: 20px;
+  font-weight: bold;
+}
+
+.subTitle p {
+  width: 60px;
+  padding-left: 40px;
+  margin-right: 40px;
+}
+
+.image {
+  width: 100px;
+  height: 100px;
+}
+
+.container {
+  width: 600px;
+}
+
+.loading-container {
+  width: 100%;
+  margin-left: 40%;
+  margin-right: auto; 
+}
+
+.left-container {
+  float: left;
+  width: 20%;
+}
+
+.right-container {
+  width: 100%;
+  padding-left: 40%;
+}
+
+.editable-label {
+  margin-left: 20px;
+}

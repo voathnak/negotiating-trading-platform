@@ -1,5 +1,10 @@
 # NEGOTIATING TRADING PLATFORM
 
+This project has not been completed 100%
+
+Demo URL: http://stock-trading.vlim.co
+Alternative Demo URL: http://stock-trading.vlim.co.s3-website-us-east-1.amazonaws.com
+
 ## Technologies Involved
 * Serverless Application Model
 * AWS SNS Service
